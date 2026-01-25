@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Fast Test Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #f8f9fa; padding: 20px; }
+        .container { max-width: 1200px; }
+        .card { border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .mode-card { cursor: pointer; transition: all 0.3s; }
+        .mode-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .mode-card.active { border: 3px solid #0d6efd; }
+        .badge-time { font-size: 0.8em; }
+        .test-case { border-left: 4px solid #0d6efd; padding: 15px; margin: 10px 0; background: white; border-radius: 5px; }
+        .test-case.high { border-left-color: #dc3545; }
+        .test-case.medium { border-left-color: #ffc107; }
+        .test-case.low { border-left-color: #198754; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #0d6efd; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center mb-4">⚡ Fast Test Case Generator</h1>
+
+    <!-- Mode Selection -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-bolt me-2"></i>Generation Mode
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mode-card card text-center p-3" onclick="selectMode('fast')" id="mode-fast">
+                        <h4><i class="fas fa-rocket text-success"></i></h4>
+                        <h5>Fast Mode</h5>
+                        <p>Basic test cases in 1-2 seconds</p>
+                        <span class="badge bg-success badge-time">1-2s</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mode-card card text-center p-3" onclick="selectMode('ai-light')" id="mode-ai-light">
+                        <h4><i class="fas fa-robot text-warning"></i></h4>
+                        <h5>AI Light</h5>
+                        <p>1 AI-enhanced test case</p>
+                        <span class="badge bg-warning badge-time">10-15s</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mode-card card text-center p-3" onclick="selectMode('ai-full')" id="mode-ai-full">
+                        <h4><i class="fas fa-brain text-danger"></i></h4>
+                        <h5>AI Full</h5>
+                        <p>2 AI-enhanced test cases</p>
+                        <span class="badge bg-danger badge-time">20-30s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Input -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-link me-2"></i>Target Website
+        </div>
+        <div class="card-body">
+            <div class="input-group">
+                <input type="url" id="targetUrl" class="form-control form-control-lg"
+                       placeholder="https://example.com" value="https://www.bbc.com">
+                <button class="btn btn-primary btn-lg" onclick="generateTests()">
+                    <i class="fas fa-bolt me-2"></i>Generate Tests
+                </button>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted">
+                    Try: <a href="#" onclick="setUrl('https://www.bbc.com')">BBC</a> |
+                    <a href="#" onclick="setUrl('https://example.com')">Example</a> |
+                    <a href="#" onclick="setUrl('https://github.com')">GitHub</a>
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Progress Section -->
+    <div id="progressSection" class="card mb-4" style="display:none;">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-spinner fa-spin me-2"></i>
+            <span id="progressPhase">Processing</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 id="progressText">Starting...</h6>
+                    <div class="progress mt-2" style="height: 20px;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                             style="width: 0%">
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small>
+                            <span id="progressStep">Initializing</span>
+                            <br>
+                            <span id="progressDetail">Preparing...</span>
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2">
+                            <small>
+                                <div><i class="fas fa-clock"></i> Elapsed: <span id="timeElapsed">0s</span></div>
+                                <div><i class="fas fa-hourglass-half"></i> <span id="progressETA">ETA: Calculating...</span></div>
+                                <div><i class="fas fa-tasks"></i> Estimated: <span id="estimatedTests">?</span> tests</div>
+                            </small>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-warning" onclick="skipAIEnhancement()">
+                                <i class="fas fa-fast-forward"></i> Skip AI
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger ms-1" onclick="cancelRequest()">
+                                <i class="fas fa-stop"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section" class="card" style="display: none;">
+        <div class="card-header bg-success text-white">
+            <i class="fas fa-check-circle me-2"></i>Generated Test Cases
+            <span class="badge bg-light text-dark float-end" id="results-count">0</span>
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between mb-3">
+                <div>
+                    <span id="results-summary">Generated 0 test cases</span>
+                    <br>
+                    <small class="text-muted" id="results-time">Time: --</small>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="copyAll()">
+                        <i class="fas fa-copy"></i> Copy All
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="downloadAll()">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+            <div id="test-cases-container"></div>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-section" class="card" style="display: none;">
+        <div class="card-header bg-danger text-white">
+            <i class="fas fa-exclamation-triangle me-2"></i>Error
+        </div>
+        <div class="card-body">
+            <h5 id="error-title">Error Occurred</h5>
+            <p id="error-message"></p>
+            <button class="btn btn-secondary" onclick="retry()">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentMode = 'fast';
+    let currentTestCases = [];
+
+    function selectMode(mode) {
+        currentMode = mode;
+
+        // Update UI
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.getElementById(`mode-${mode}`).classList.add('active');
+
+        // Update button text based on mode
+        const button = document.querySelector('.btn-primary');
+        if (mode === 'fast') {
+            button.innerHTML = '<i class="fas fa-rocket me-2"></i>Generate Fast Tests';
+        } else if (mode === 'ai-light') {
+            button.innerHTML = '<i class="fas fa-robot me-2"></i>Generate with AI Light';
+        } else {
+            button.innerHTML = '<i class="fas fa-brain me-2"></i>Generate with AI Full';
+        }
+    }
+
+    function setUrl(url) {
+        document.getElementById('targetUrl').value = url;
+        return false;
+    }
+
+    async generateTests() {
+        const urlInput = document.getElementById('targetUrl');
+        const aiModeSelect = document.getElementById('aiMode');
+
+        if (!urlInput || !aiModeSelect) return;
+
+        const url = urlInput.value.trim();
+        const aiMode = aiModeSelect.value;
+
+        if (!url) {
+            this.showToast('Please enter a URL', 'warning');
+            return;
+        }
+
+        this.log('INFO', 'Generating test cases', { url, aiMode });
+
+        // Get estimation first
+        const estimatedTests = await this.estimateTestCount();
+        this.log('INFO', `Estimated ${estimatedTests} test cases`);
+
+        // Setup progress tracking
+        this.startTime = Date.now();
+        this.totalEstimatedSteps = estimatedTests;
+        this.completedSteps = 0;
+        this.currentPhase = 'discovery';
+
+        this.showProgress(true);
+        this.updateProgressWithPhase(5, 'discovery', 'Estimating workload...',
+            `Estimated ${estimatedTests} test cases`);
+
+        // Create abort controller for this operation
+        this.abortController = new AbortController();
+
+        try {
+            // Get AI limit for selected mode from configuration
+            const aiLimit = this.getAILimitForMode(aiMode);
+
+            // DO NOT send limitAITests in the request body - backend uses properties from configuration
+            const requestBody = {
+                url: url,
+                mode: aiMode, // Send mode to backend
+                useML: true,
+                useAI: aiMode !== 'fast',
+                enhanceWithAI: aiMode === 'all' || aiMode === 'single'
+                // NO limitAITests property here - backend uses configuration properties
+            };
+
+            this.log('INFO', 'Sending request to backend', {
+                ...requestBody,
+                aiLimit: aiLimit,
+                unlimited: aiLimit === 0,
+                estimatedTests: estimatedTests
+            });
+
+            // Phase 1: Discovery
+            this.updateProgressWithPhase(10, 'discovery', 'Fetching page content...');
+
+            const response = await fetch(`${this.baseUrl}/api/v1/elements/generate-test-cases`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
+                signal: this.abortController.signal
+                // NO timeout - let it run as long as needed
+            });
+
+            // Phase 2: Generation
+            this.completedSteps = Math.floor(estimatedTests * 0.3); // Assume 30% done after discovery
+            this.currentPhase = 'generation';
+            this.updateProgressWithPhase(40, 'generation', 'Generating test cases...',
+                `Processing estimated ${estimatedTests} test cases`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            // Phase 3: AI Enhancement (if applicable)
+            if (aiMode !== 'fast' && aiLimit !== 0) {
+                this.completedSteps = Math.floor(estimatedTests * 0.6); // Assume 60% done
+                this.currentPhase = 'ai_enhancement';
+                this.updateProgressWithPhase(70, 'ai_enhancement', 'Enhancing with AI...',
+                    aiLimit === 0 ? 'Enhancing ALL tests with AI' : `Enhancing ${aiLimit} tests with AI`);
+            }
+
+            const data = await response.json();
+            this.rawData = data;
+
+            // Update actual counts
+            const actualTests = data.testCaseCount || 0;
+            this.totalEstimatedSteps = actualTests; // Update with actual count
+            this.completedSteps = Math.floor(actualTests * 0.9); // Assume 90% done after backend processing
+
+            this.log('SUCCESS', 'Test generation completed', {
+                success: data.success,
+                testCaseCount: actualTests,
+                testCasesActual: data.testCases ? data.testCases.length : 0,
+                enhancedWithAI: data.enhancedWithAI,
+                aiLimit: data.aiLimit,
+                aiUnlimited: data.aiUnlimited
+            });
+
+            // Phase 4: Rendering
+            this.currentPhase = 'rendering';
+            this.updateProgressWithPhase(90, 'rendering', 'Rendering test cases...',
+                `Rendering ${actualTests} test cases`);
+
+            // Display test cases
+            if (data.testCases && data.testCases.length > 0) {
+                this.displayTestCases(data.testCases);
+                this.log('INFO', `Displayed ${data.testCases.length} test cases`);
+
+                // Show AI limit info in toast
+                if (data.aiUnlimited) {
+                    this.showToast(`Generated ${actualTests} test cases with UNLIMITED AI enhancement!`, 'success');
+                } else if (data.aiLimit > 0) {
+                    const aiEnhancedCount = (data.testCases || []).filter(tc =>
+                        tc.tags && tc.tags.includes('ai-enhanced')
+                    ).length;
+                    this.showToast(`Generated ${actualTests} test cases (AI-enhanced: ${aiEnhancedCount}/${data.aiLimit})`, 'success');
+                } else {
+                    this.showToast(`Generated ${actualTests} test cases!`, 'success');
+                }
+            } else {
+                this.log('WARN', 'No test cases in response', data);
+                const container = document.getElementById('testCasesContainer');
+                if (container) {
+                    container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No test cases were generated. The response was:
+                        <pre class="mt-2">${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                }
+                this.showToast('No test cases generated', 'warning');
+            }
+
+            // Phase 5: Complete
+            this.completedSteps = actualTests;
+            this.currentPhase = 'complete';
+            this.updateProgressWithPhase(100, 'complete', 'Test generation complete!',
+                `Generated ${actualTests} test cases in ${Math.floor((Date.now() - this.startTime) / 1000)}s`);
+
+            setTimeout(() => {
+                this.showProgress(false);
+            }, 2000);
+
+        } catch (error) {
+            this.log('ERROR', 'Test generation failed', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+
+            if (error.name === 'AbortError') {
+                this.showToast('Test generation cancelled', 'warning');
+            } else {
+                this.showToast(`Test generation failed: ${error.message}`, 'danger');
+            }
+            this.showProgress(false);
+        } finally {
+            this.abortController = null;
+        }
+    }
+
+    function displayTestCases(testCases) {
+        const container = document.getElementById('test-cases-container');
+
+        if (!testCases || testCases.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">No test cases generated</div>';
+            return;
+        }
+
+        let html = '';
+        testCases.forEach((testCase, index) => {
+            const priority = testCase.priority || 'Medium';
+            const priorityClass = priority.toLowerCase();
+            const hasAI = (testCase.tags && testCase.tags.includes('ai-enhanced')) ||
+                (testCase.title && testCase.title.includes('AI-Enhanced'));
+
+            html += `
+            <div class="test-case ${priorityClass}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5>${index + 1}. ${escapeHtml(testCase.title)}</h5>
+                    <div>
+                        <span class="badge bg-${priorityClass === 'high' ? 'danger' :
+                priorityClass === 'medium' ? 'warning' : 'success'}">
+                            ${priority}
+                        </span>
+                        ${hasAI ? '<span class="badge bg-info ms-1">AI</span>' : ''}
+                    </div>
+                </div>
+
+                ${testCase.description ? `
+                    <p class="text-muted">${escapeHtml(testCase.description)}</p>
+                ` : ''}
+
+                ${testCase.steps && testCase.steps.length > 0 ? `
+                    <div class="mt-2">
+                        <strong>Steps:</strong>
+                        <ol class="mb-1">
+                            ${testCase.steps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
+                        </ol>
+                    </div>
+                ` : ''}
+
+                ${testCase.expectedResults && testCase.expectedResults.length > 0 ? `
+                    <div class="mt-2">
+                        <strong>Expected Results:</strong>
+                        <ul class="mb-1">
+                            ${testCase.expectedResults.map(result => `<li>${escapeHtml(result)}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyTestCase(${index})">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function copyTestCase(index) {
+        if (!currentTestCases[index]) return;
+
+        const testCase = currentTestCases[index];
+        const text = `
+Test Case: ${testCase.title}
+Priority: ${testCase.priority}
+${testCase.description ? `Description: ${testCase.description}\n` : ''}
+Steps:
+${(testCase.steps || []).map((step, i) => `${i + 1}. ${step}`).join('\n')}
+
+Expected Results:
+${(testCase.expectedResults || []).map((result, i) => `${i + 1}. ${result}`).join('\n')}
+
+Tags: ${(testCase.tags || []).join(', ')}
+    `.trim();
+
+        navigator.clipboard.writeText(text)
+            .then(() => alert('Test case copied to clipboard!'))
+            .catch(err => console.error('Copy failed:', err));
+    }
+
+    function copyAll() {
+        if (currentTestCases.length === 0) return;
+
+        const text = currentTestCases.map((testCase, index) => `
+=== Test Case ${index + 1}: ${testCase.title} ===
+Priority: ${testCase.priority}
+${testCase.description ? `Description: ${testCase.description}\n` : ''}
+Steps:
+${(testCase.steps || []).map((step, i) => `${i + 1}. ${step}`).join('\n')}
+
+Expected Results:
+${(testCase.expectedResults || []).map((result, i) => `${i + 1}. ${result}`).join('\n')}
+
+Tags: ${(testCase.tags || []).join(', ')}
+    `.trim()).join('\n\n' + '='.repeat(50) + '\n\n');
+
+        navigator.clipboard.writeText(text)
+            .then(() => alert('All test cases copied to clipboard!'))
+            .catch(err => console.error('Copy failed:', err));
+    }
+
+    function downloadAll() {
+        if (currentTestCases.length === 0) return;
+
+        const content = currentTestCases.map((testCase, index) => `
+=== Test Case ${index + 1}: ${testCase.title} ===
+Priority: ${testCase.priority}
+${testCase.description ? `Description: ${testCase.description}\n` : ''}
+Steps:
+${(testCase.steps || []).map((step, i) => `${i + 1}. ${step}`).join('\n')}
+
+Expected Results:
+${(testCase.expectedResults || []).map((result, i) => `${i + 1}. ${result}`).join('\n')}
+
+Tags: ${(testCase.tags || []).join(', ')}
+    `.trim()).join('\n\n' + '='.repeat(50) + '\n\n');
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `test-cases-${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function retry() {
+        document.getElementById('error-section').style.display = 'none';
+        generateTests();
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        selectMode('fast');
+    });
+</script>
+</body>
+</html>

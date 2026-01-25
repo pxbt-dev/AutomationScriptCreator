@@ -1,4 +1,4 @@
-package com.pxbtdev.entity;
+package com.pxbtdev.model.entity;
 
 import lombok.*;
 import java.time.LocalDateTime;

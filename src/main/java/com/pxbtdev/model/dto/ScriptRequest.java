@@ -1,6 +1,6 @@
-package com.pxbtdev.dto;
+package com.pxbtdev.model.dto;
 
-import com.pxbtdev.enums.ScriptType;
+import com.pxbtdev.model.enums.ScriptType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

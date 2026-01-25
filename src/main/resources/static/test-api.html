@@ -1,83 +1,207 @@
 <!DOCTYPE html>
 <html lang="">
 <head>
-    <title>API Test</title>
+    <title>API Test - Automation Script Creator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
-        .success { background: #d4edda; }
-        .error { background: #f8d7da; }
+        .result { margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .pending { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .debug { background: #e2e3e5; border-left: 4px solid #6c757d; font-family: monospace; font-size: 12px; }
+        pre { margin: 0; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-<h1>API Test</h1>
-<div id="results"></div>
+<div class="container mt-4">
+    <h1 class="mb-4">🧪 API Test - Automation Script Creator</h1>
+
+    <div class="mb-3">
+        <button class="btn btn-primary me-2" onclick="runAllTests()">Run All Tests</button>
+        <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <div class="mt-4">
+        <h4>Test URLs:</h4>
+        <ul>
+            <li><a href="http://localhost:8080/api/v1/health" target="_blank">Health Check</a></li>
+            <li><a href="http://localhost:8080/api/v1/ai/test" target="_blank">AI Test</a></li>
+            <li><a href="http://localhost:8080/api/v1/elements/analyze?url=https://example.com" target="_blank">Analyze Example.com</a></li>
+        </ul>
+    </div>
+</div>
 
 <script>
-    async function testEndpoint(url, method = 'GET', body = null) {
+    const baseUrl = 'http://localhost:8080';
+    let testResults = [];
+
+    async function testEndpoint(name, url, method = 'GET', body = null) {
+        const resultId = 'result-' + Date.now();
         const div = document.createElement('div');
-        div.className = 'result';
-        div.innerHTML = `<strong>${url}:</strong> Testing...`;
+        div.id = resultId;
+        div.className = 'result pending';
+        div.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <strong>${name}</strong>
+            <span class="badge bg-warning">Testing...</span>
+        </div>
+        <div class="mt-2">
+            <small>URL: ${url}</small><br>
+            <small>Method: ${method}</small>
+        </div>
+    `;
         document.getElementById('results').appendChild(div);
 
         try {
+            const startTime = Date.now();
             const options = { method };
             if (body) {
                 options.headers = { 'Content-Type': 'application/json' };
                 options.body = JSON.stringify(body);
             }
 
+            console.log(`Testing: ${name}`, { url, method, body });
+
             const response = await fetch(url, options);
+            const elapsed = Date.now() - startTime;
             const status = `${response.status} ${response.statusText}`;
 
             let data;
             try {
                 data = await response.json();
             } catch (e) {
-                data = await response.text();
+                data = { text: await response.text() };
             }
 
-            div.className += ' success';
-            div.innerHTML = `
-                    <strong>${url}:</strong> ${status}<br>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
-                `;
+            const isSuccess = response.ok;
 
-            return { success: true, data };
-        } catch (error) {
-            div.className += ' error';
+            // Update UI
+            div.className = isSuccess ? 'result success' : 'result error';
             div.innerHTML = `
-                    <strong>${url}:</strong> ERROR<br>
-                    ${error.message}
-                `;
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>${name}</strong>
+                <span class="badge bg-${isSuccess ? 'success' : 'danger'}">
+                    ${status} (${elapsed}ms)
+                </span>
+            </div>
+            <div class="mt-2">
+                <small>URL: ${url}</small><br>
+                <small>Method: ${method}</small>
+            </div>
+            ${body ? `<div class="mt-2"><small>Request Body:</small><pre class="debug">${JSON.stringify(body, null, 2)}</pre></div>` : ''}
+            <div class="mt-2">
+                <small>Response:</small>
+                <pre class="debug">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+        `;
+
+            testResults.push({
+                name,
+                url,
+                method,
+                success: isSuccess,
+                status,
+                elapsed,
+                response: data
+            });
+
+            return { success: isSuccess, data, elapsed };
+
+        } catch (error) {
+            const elapsed = Date.now() - startTime;
+            div.className = 'result error';
+            div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>${name}</strong>
+                <span class="badge bg-danger">Error (${elapsed}ms)</span>
+            </div>
+            <div class="mt-2">
+                <small>URL: ${url}</small><br>
+                <small>Method: ${method}</small>
+            </div>
+            <div class="mt-2">
+                <strong>Error:</strong> ${error.message}
+            </div>
+        `;
+
+            testResults.push({
+                name,
+                url,
+                method,
+                success: false,
+                error: error.message,
+                elapsed
+            });
+
             return { success: false, error };
         }
     }
 
-    async function runTests() {
-        const baseUrl = 'http://localhost:8080/api/v1/elements';
+    async function runAllTests() {
+        testResults = [];
 
-        // Test 1: Simple test endpoint
-        await testEndpoint(`${baseUrl}/test-simple`);
+        // Test 1: Health check
+        await testEndpoint('Health Check', `${baseUrl}/api/v1/health`);
 
-        // Test 2: Analyze endpoint
-        await testEndpoint(`${baseUrl}/analyze?url=https://example.com`);
+        // Test 2: AI Test
+        await testEndpoint('AI Test', `${baseUrl}/api/v1/ai/test`);
 
-        // Test 3: Generate test cases
-        await testEndpoint(`${baseUrl}/generate-test-cases`, 'POST', {
+        // Test 3: Simple test endpoint
+        await testEndpoint('Simple Test', `${baseUrl}/api/v1/elements/test-simple`);
+
+        // Test 4: Analyze endpoint
+        await testEndpoint('Analyze', `${baseUrl}/api/v1/elements/analyze?url=https://example.com`);
+
+        // Test 5: Generate test cases without AI
+        await testEndpoint('Generate Tests (No AI)', `${baseUrl}/api/v1/elements/generate-test-cases`, 'POST', {
             url: 'https://example.com',
             enhanceWithAI: false
         });
 
-        // Test 4: Generate with AI (quick)
-        await testEndpoint(`${baseUrl}/generate-test-cases`, 'POST', {
+        // Test 6: Generate with AI (1 test only)
+        await testEndpoint('Generate Tests (1 AI)', `${baseUrl}/api/v1/elements/generate-test-cases`, 'POST', {
             url: 'https://example.com',
             enhanceWithAI: true,
             limitAITests: 1
         });
+
+        // Test 7: Debug endpoint
+        await testEndpoint('Debug Test', `${baseUrl}/api/v1/elements/debug-response`, 'POST', {
+            url: 'https://example.com'
+        });
+
+        // Show summary
+        const successCount = testResults.filter(r => r.success).length;
+        const totalCount = testResults.length;
+        const totalTime = testResults.reduce((sum, r) => sum + (r.elapsed || 0), 0);
+
+        const summary = document.createElement('div');
+        summary.className = 'result success mt-4';
+        summary.innerHTML = `
+        <h5>Test Summary</h5>
+        <p>✅ ${successCount} of ${totalCount} tests passed</p>
+        <p>⏱️ Total time: ${totalTime}ms</p>
+        <p>📊 Success rate: ${Math.round((successCount / totalCount) * 100)}%</p>
+    `;
+        document.getElementById('results').appendChild(summary);
     }
 
-    runTests();
+    function clearResults() {
+        document.getElementById('results').innerHTML = '';
+        testResults = [];
+    }
+
+    // Run tests on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('API Test page loaded');
+        // Auto-run basic tests
+        setTimeout(() => {
+            testEndpoint('Health Check', `${baseUrl}/api/v1/health`);
+            testEndpoint('Simple Test', `${baseUrl}/api/v1/elements/test-simple`);
+        }, 1000);
+    });
 </script>
 </body>
 </html>

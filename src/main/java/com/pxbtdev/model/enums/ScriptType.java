@@ -1,4 +1,4 @@
-package com.pxbtdev.enums;
+package com.pxbtdev.model.enums;
 
 public enum ScriptType {
     PLAYWRIGHT, PUPPETEER, SELENIUM

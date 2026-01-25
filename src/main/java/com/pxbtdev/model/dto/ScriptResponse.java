@@ -1,4 +1,4 @@
-package com.pxbtdev.dto;
+package com.pxbtdev.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

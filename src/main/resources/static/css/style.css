@@ -33,6 +33,26 @@ h1.display-4 {
     font-weight: 700;
 }
 
+/* Status Indicators */
+#backendIndicator, #aiIndicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+    background: #6c757d;
+}
+
+#backendIndicator.connected, #aiIndicator.connected {
+    background: var(--success);
+    animation: none;
+}
+
+#backendIndicator.disconnected, #aiIndicator.disconnected {
+    background: var(--danger);
+    animation: none;
+}
+
 /* Cards */
 .card {
     border: none;
@@ -99,33 +119,65 @@ h1.display-4 {
     border-left: 4px solid var(--primary);
     margin-bottom: 15px;
     border-radius: 10px;
+    padding: 15px;
+    background: #f8f9fa;
 }
 
 .test-case-card.high { border-left-color: var(--danger); }
 .test-case-card.medium { border-left-color: var(--warning); }
 .test-case-card.low { border-left-color: var(--success); }
 
-/* Tags */
-.tag {
-    display: inline-block;
-    padding: 3px 10px;
-    margin: 2px;
-    border-radius: 15px;
+/* Element Cards */
+.element-card {
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+}
+
+.element-card:hover {
+    background: #f8f9fa;
+}
+
+/* Debug Console */
+.debug-log {
+    font-family: 'Courier New', monospace;
     font-size: 12px;
-    background: #e9ecef;
-    color: #495057;
-}
-
-/* Toast */
-.toast-container {
-    z-index: 1055;
-}
-
-/* Tab Content */
-.tab-content {
-    min-height: 400px;
-    max-height: 500px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 10px;
+    border-radius: 5px;
+    max-height: 400px;
     overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.debug-info { color: #4ec9b0; }
+.debug-warn { color: #ce9178; }
+.debug-error { color: #f44747; }
+.debug-success { color: #6a9955; }
+.debug-time { color: #9cdcfe; }
+
+/* Loading Spinner */
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: var(--primary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Badges */
+.badge {
+    border-radius: 10px;
+    padding: 5px 10px;
 }
 
 /* Responsive */
@@ -138,4 +190,105 @@ h1.display-4 {
         width: 100%;
         margin-bottom: 10px;
     }
+
+    .debug-log {
+        font-size: 10px;
+    }
+}
+
+/* Execution Results Styles */
+.execution-output, .error-output, .test-results {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.error-output {
+    background: #fff5f5;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.execution-output {
+    background: #f8f9fa;
+}
+
+.test-results {
+    background: #e8f4fd;
+    border-color: #b8daff;
+}
+
+/* Code blocks */
+.code-block {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 15px;
+    border-radius: 5px;
+    max-height: 500px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+/* Status badges */
+.badge-success { background-color: #28a745 !important; }
+.badge-warning { background-color: #ffc107 !important; color: #212529 !important; }
+.badge-danger { background-color: #dc3545 !important; }
+.badge-info { background-color: #17a2b8 !important; }
+
+/* Progress indicators */
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+/* Button states */
+.btn-success:disabled {
+    opacity: 0.65;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .execution-output, .error-output, .test-results {
+        font-size: 10px;
+        max-height: 200px;
+    }
+
+    .code-block {
+        font-size: 10px;
+        max-height: 300px;
+    }
+}
+
+/* Add to your CSS */
+.connected {
+    background: #28a745 !important;
+    animation: none !important;
+}
+
+.disconnected {
+    background: #dc3545 !important;
+    animation: none !important;
+}
+
+.checking {
+    background: #ffc107 !important;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }

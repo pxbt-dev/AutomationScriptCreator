@@ -1,4 +1,4 @@
-package com.pxbtdev.dto;
+package com.pxbtdev.model.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 public class RecordingRequest {
     private String url;
     private String sessionName;
-    private boolean headless = true;
+    private Boolean headless;  // Changed from boolean to Boolean for null check
 }

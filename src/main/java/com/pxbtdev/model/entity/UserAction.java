@@ -1,6 +1,6 @@
-package com.pxbtdev.entity;
+package com.pxbtdev.model.entity;
 
-import com.pxbtdev.enums.ActionType;
+import com.pxbtdev.model.enums.ActionType;
 import lombok.Data;
 import java.time.LocalDateTime;
 
