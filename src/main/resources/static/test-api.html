@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+    </style>
+</head>
+<body>
+<h1>API Test</h1>
+<div id="results"></div>
+
+<script>
+    async function testEndpoint(url, method = 'GET', body = null) {
+        const div = document.createElement('div');
+        div.className = 'result';
+        div.innerHTML = `<strong>${url}:</strong> Testing...`;
+        document.getElementById('results').appendChild(div);
+
+        try {
+            const options = { method };
+            if (body) {
+                options.headers = { 'Content-Type': 'application/json' };
+                options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(url, options);
+            const status = `${response.status} ${response.statusText}`;
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = await response.text();
+            }
+
+            div.className += ' success';
+            div.innerHTML = `
+                    <strong>${url}:</strong> ${status}<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+
+            return { success: true, data };
+        } catch (error) {
+            div.className += ' error';
+            div.innerHTML = `
+                    <strong>${url}:</strong> ERROR<br>
+                    ${error.message}
+                `;
+            return { success: false, error };
+        }
+    }
+
+    async function runTests() {
+        const baseUrl = 'http://localhost:8080/api/v1/elements';
+
+        // Test 1: Simple test endpoint
+        await testEndpoint(`${baseUrl}/test-simple`);
+
+        // Test 2: Analyze endpoint
+        await testEndpoint(`${baseUrl}/analyze?url=https://example.com`);
+
+        // Test 3: Generate test cases
+        await testEndpoint(`${baseUrl}/generate-test-cases`, 'POST', {
+            url: 'https://example.com',
+            enhanceWithAI: false
+        });
+
+        // Test 4: Generate with AI (quick)
+        await testEndpoint(`${baseUrl}/generate-test-cases`, 'POST', {
+            url: 'https://example.com',
+            enhanceWithAI: true,
+            limitAITests: 1
+        });
+    }
+
+    runTests();
+</script>
+</body>
+</html>
