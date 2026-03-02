@@ -1,489 +1,384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 AI-Powered Test Automation - DEBUG</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* Add debug styles */
-        .debug-log {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 10px;
-            border-radius: 5px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .debug-info { color: #4ec9b0; }
-        .debug-warn { color: #ce9178; }
-        .debug-error { color: #f44747; }
-        .debug-success { color: #6a9955; }
-        .debug-time { color: #9cdcfe; }
-
-        /* Progress indicator */
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* Execution Results Styles */
-        .execution-output, .error-output, .test-results {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            border: 1px solid #dee2e6;
-        }
-
-        .error-output {
-            background: #fff5f5;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
-
-        .execution-output {
-            background: #f8f9fa;
-        }
-
-        .test-results {
-            background: #e8f4fd;
-            border-color: #b8daff;
-        }
-
-        /* Code blocks */
-        .code-block {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 15px;
-            border-radius: 5px;
-            max-height: 500px;
-            overflow-y: auto;
-            margin: 0;
-        }
-
-        /* Status badges */
-        .badge-success { background-color: #28a745 !important; }
-        .badge-warning { background-color: #ffc107 !important; color: #212529 !important; }
-        .badge-danger { background-color: #dc3545 !important; }
-        .badge-info { background-color: #17a2b8 !important; }
-
-        /* Progress indicators */
-        .progress-bar-animated {
-            animation: progress-bar-stripes 1s linear infinite;
-        }
-
-        @keyframes progress-bar-stripes {
-            0% { background-position: 1rem 0; }
-            100% { background-position: 0 0; }
-        }
-
-        /* Button states */
-        .btn-success:disabled {
-            opacity: 0.65;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .execution-output, .error-output, .test-results {
-                font-size: 10px;
-                max-height: 200px;
-            }
-
-            .code-block {
-                font-size: 10px;
-                max-height: 300px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AutomationScriptCreator — One-Stop Testing Platform</title>
+  <meta name="description" content="AI-powered testing platform for API testing, website analysis, and Playwright automation"/>
+  <link rel="stylesheet" href="/css/style.css"/>
 </head>
 <body>
-<div class="container mt-4">
-    <!-- Debug Header -->
-    <div class="alert alert-warning">
-        <i class="fas fa-bug me-2"></i>
-        <strong>DEBUG MODE ENABLED</strong> - Extensive logging active
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">🧪</div>
+        <div class="logo-text">
+          <span class="logo-title">AutomationSC</span>
+          <span class="logo-sub">Testing Platform</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Header -->
-    <div class="text-center mb-4">
-        <h1 class="display-4">🚀 AI-Powered Test Automation</h1>
-        <p class="lead">Generate Playwright test cases from any website with AI enhancement</p>
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Testing</div>
+      <a class="nav-item active" data-page="dashboard" id="nav-dashboard" href="#">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a class="nav-item" data-page="swagger" id="nav-swagger" href="#">
+        <span class="nav-icon">📡</span> API / Swagger
+      </a>
+      <a class="nav-item" data-page="website" id="nav-website" href="#">
+        <span class="nav-icon">🌐</span> Website Testing
+      </a>
+
+      <div class="nav-section-label">AI</div>
+      <a class="nav-item" data-page="agents" id="nav-agents" href="#">
+        <span class="nav-icon">🤖</span> AI Agents
+      </a>
+
+      <div class="nav-section-label">Results</div>
+      <a class="nav-item" data-page="results" id="nav-results" href="#">
+        <span class="nav-icon">📋</span> Results &amp; Reports
+      </a>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="card mb-3">
-        <div class="card-header bg-dark text-white">
-            <i class="fas fa-rocket me-2"></i>Quick Test
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <button class="btn btn-outline-primary w-100" onclick="testConnection()">
-                        <i class="fas fa-plug me-1"></i>Test Backend
-                    </button>
-                </div>
-                <div class="col-md-4">
-                    <button class="btn btn-outline-info w-100" onclick="testAI()">
-                        <i class="fas fa-robot me-1"></i>Test AI
-                    </button>
-                </div>
-                <div class="col-md-4">
-                    <button class="btn btn-outline-danger w-100" onclick="cancelRequest()">
-                        <i class="fas fa-ban me-1"></i>Cancel Request
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="sidebar-status">
+      <div class="status-row">
+        <div class="status-dot checking" id="dot-backend"></div>
+        <span id="lbl-backend">Backend: checking…</span>
+      </div>
+      <div class="status-row">
+        <div class="status-dot checking" id="dot-ai"></div>
+        <span id="lbl-ai">AI: checking…</span>
+      </div>
+      <div class="status-row">
+        <div class="status-dot checking" id="dot-playwright"></div>
+        <span id="lbl-playwright">Playwright: checking…</span>
+      </div>
     </div>
+  </nav>
 
-    <!-- Status Panel -->
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5><i class="fas fa-server"></i> Backend</h5>
-                    <div class="pulse" id="backendIndicator"></div>
-                    <small id="backendStatus">Checking...</small>
-                </div>
+  <!-- ── Main ── -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-title" id="page-title">
+        <span>📊</span> Dashboard
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="App.checkStatus()">↻ Refresh Status</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- ══ DASHBOARD ══ -->
+      <section class="page-section active" id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat-card card-glow-blue">
+            <div class="stat-value" id="stat-tests">0</div>
+            <div class="stat-label">Tests Generated</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-endpoints">0</div>
+            <div class="stat-label">API Endpoints</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-passed" style="color:var(--accent-green)">0</div>
+            <div class="stat-label">Tests Passed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-ai" style="color:var(--accent-purple)">0</div>
+            <div class="stat-label">AI Enhanced</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card card-glow-blue">
+            <div class="card-header">
+              <div class="card-title"><span>📡</span> API Testing</div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5><i class="fas fa-robot"></i> AI Service</h5>
-                    <div class="pulse" id="aiIndicator"></div>
-                    <small id="aiStatus">Checking...</small>
-                </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Point to a Swagger/OpenAPI spec URL to automatically generate and execute API test cases.</p>
+            <button class="btn btn-primary" onclick="App.navigate('swagger')">Open API Tester →</button>
+          </div>
+          <div class="card card-glow-purple">
+            <div class="card-header">
+              <div class="card-title"><span>🌐</span> Website Testing</div>
             </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Analyse any website to discover interactive elements and generate Playwright test suites.</p>
+            <button class="btn btn-purple" onclick="App.navigate('website')">Open Website Tester →</button>
+          </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5><i class="fas fa-clock"></i> Response Time</h5>
-                    <div id="responseTime">0ms</div>
-                </div>
+
+        <div class="card card-glow-green">
+          <div class="card-header">
+            <div class="card-title"><span>🤖</span> AI Test Agents</div>
+            <span class="card-badge badge-purple ai-badge" id="dash-ai-status">Checking…</span>
+          </div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Use local Ollama AI agents to enhance test cases, discover security vulnerabilities, and improve accessibility coverage. Recommended model: <code style="color:var(--accent-cyan)">qwen2.5-coder:7b</code></p>
+          <button class="btn btn-green" onclick="App.navigate('agents')">Open AI Agents →</button>
+        </div>
+      </section>
+
+      <!-- ══ SWAGGER / API ══ -->
+      <section class="page-section" id="page-swagger">
+        <div class="card card-glow-blue">
+          <div class="card-header">
+            <div class="card-title"><span>📡</span> Swagger / OpenAPI Parser</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Swagger / OpenAPI Spec URL</label>
+            <div class="input-group">
+              <input type="url" class="form-control" id="swagger-url"
+                     placeholder="http://yourapi/swagger/docs/v2  or  https://petstore.swagger.io/v2/swagger.json"/>
+              <button class="btn btn-primary" id="btn-parse-swagger" onclick="SwaggerPage.parse()">
+                <span>Parse Spec</span>
+              </button>
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Auth Token (optional)</label>
+            <input type="text" class="form-control" id="swagger-auth" placeholder="Bearer your-token-here"/>
+          </div>
+          <div id="swagger-status" class="status-banner"></div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5><i class="fas fa-memory"></i> Active</h5>
-                    <div id="activeRequests">0 requests</div>
-                </div>
+
+        <!-- Parsed spec info -->
+        <div class="card" id="swagger-spec-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title" id="swagger-api-title">API Info</div>
+            <div>
+              <span class="card-badge badge-blue" id="swagger-endpoint-count">0 endpoints</span>
             </div>
+          </div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px" id="swagger-api-desc"></div>
+          <div id="swagger-endpoint-list" class="endpoint-list"></div>
         </div>
-    </div>
 
-    <!-- URL Input -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <i class="fas fa-link me-2"></i>Target Website
+        <!-- Generate tests -->
+        <div class="card" id="swagger-gen-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title"><span>🧪</span> Generate Test Cases</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <label class="toggle-group">
+              <label class="toggle"><input type="checkbox" id="swagger-use-ai"><span class="toggle-slider"></span></label>
+              🤖 AI-enhanced tests
+            </label>
+            <button class="btn btn-primary" onclick="SwaggerPage.generateTests()">Generate Tests</button>
+          </div>
+          <div id="swagger-gen-status" class="status-banner"></div>
+          <div id="swagger-test-list" class="test-case-list"></div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <label class="form-label">Website URL</label>
-                    <div class="input-group">
-                        <input type="url" id="targetUrl" class="form-control"
-                               placeholder="https://example.com"
-                               value="https://www.bbc.com">
-                        <button class="btn btn-outline-secondary" type="button" onclick="testUrls()">
-                            <i class="fas fa-vial"></i> Test
-                        </button>
-                    </div>
-                    <small class="text-muted">Try: https://www.bbc.com, https://example.com, https://demo.playwright.dev</small>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">AI Mode</label>
-                    <select id="aiMode" class="form-select">
-                        <option value="fast">Fast (No AI)</option>
-                        <option value="single">Single AI Test</option>
-                        <option value="all" selected>All Tests AI</option>
-                    </select>
-                </div>
-                <!-- Add this section after the AI Mode dropdown in index.html -->
-                <div class="col-md-3">
-                    <label class="form-label">AI Limits</label>
-                    <div class="alert alert-info small mb-0">
-                        <i class="fas fa-info-circle me-1"></i>
-                        <strong>Current Limits:</strong><br>
-                        • Fast: <span id="limitFast">0</span> (no AI)<br>
-                        • Single: <span id="limitSingle">1</span> AI test<br>
-                        • All: <span id="limitAll">0</span> = UNLIMITED
-                    </div>
-                </div>
+
+        <!-- Run tests -->
+        <div class="card" id="swagger-run-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title"><span>▶️</span> Run API Tests</div>
+          </div>
+          <button class="btn btn-green" onclick="SwaggerPage.runTests()">Run All Tests</button>
+          <div id="swagger-run-status" class="status-banner" style="margin-top:12px"></div>
+          <div id="swagger-results-list" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- ══ WEBSITE ══ -->
+      <section class="page-section" id="page-website">
+        <div class="card card-glow-purple">
+          <div class="card-header">
+            <div class="card-title"><span>🌐</span> Website Analyser</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Website URL</label>
+            <div class="input-group">
+              <input type="url" class="form-control" id="website-url" placeholder="https://example.com"/>
+              <button class="btn btn-purple" id="btn-analyse" onclick="WebsitePage.analyse()">Analyse</button>
             </div>
-            <div class="mt-3">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="enableDebugLogging" checked>
-                    <label class="form-check-label" for="enableDebugLogging">
-                        <strong>Enable Debug Logging</strong>
-                    </label>
-                </div>
+          </div>
+          <div id="website-status" class="status-banner"></div>
+        </div>
+
+        <!-- Analysis results -->
+        <div id="website-analysis-card" class="card" style="display:none">
+          <div class="card-header">
+            <div class="card-title"><span>🔍</span> Page Analysis</div>
+          </div>
+          <div class="stats-row" id="website-stats"></div>
+          <div style="margin-top:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Top Elements Found</div>
+            <div id="website-element-list" class="endpoint-list"></div>
+          </div>
+        </div>
+
+        <!-- Test generation -->
+        <div class="card" id="website-tests-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title"><span>🧪</span> Test Cases</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <label class="toggle-group">
+                <label class="toggle"><input type="checkbox" id="website-use-ai"><span class="toggle-slider"></span></label>
+                🤖 AI
+              </label>
+              <button class="btn btn-primary btn-sm" onclick="WebsitePage.generateTests()">Generate Tests</button>
             </div>
+          </div>
+          <div id="website-gen-status" class="status-banner"></div>
+          <div id="website-test-list" class="test-case-list"></div>
         </div>
-    </div>
 
-    <!-- Action Buttons -->
-    <div class="text-center mb-4">
-        <button id="analyzeBtn" class="btn btn-primary btn-lg me-2" onclick="analyzeWebsite()">
-            <i class="fas fa-search me-2"></i>Analyze Website
-        </button>
-        <button id="generateBtn" class="btn btn-success btn-lg me-2" onclick="generateTests()">
-            <i class="fas fa-bolt me-2"></i>Generate Tests
-        </button>
-        <button id="stopBtn" class="btn btn-danger btn-lg" style="display:none;" onclick="stopAll()">
-            <i class="fas fa-stop me-2"></i>Stop Everything
-        </button>
-    </div>
-
-    <!-- Progress Section -->
-    <div id="progressSection" class="card mb-4" style="display:none;">
-        <div class="card-header bg-info text-white">
-            <i class="fas fa-spinner fa-spin me-2"></i>
-            <span id="progressPhase">Processing</span>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <h6 id="progressText">Starting...</h6>
-                    <div class="progress mt-2" style="height: 20px;">
-                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                             style="width: 0%">
-                            <span id="progressPercent">0%</span>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <small>
-                            <span id="progressStep">Initializing</span>
-                            <br>
-                            <span id="progressDetail">Preparing...</span>
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <div class="mt-2">
-                            <small>
-                                <div><i class="fas fa-clock"></i> Elapsed: <span id="timeElapsed">0s</span></div>
-                                <div><i class="fas fa-hourglass-half"></i> <span id="progressETA">ETA: Calculating...</span></div>
-                                <div><i class="fas fa-tasks"></i> Estimated: <span id="estimatedTests">?</span> tests</div>
-                            </small>
-                        </div>
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-outline-warning" onclick="skipAIEnhancement()">
-                                <i class="fas fa-fast-forward"></i> Skip AI
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger ms-1" onclick="cancelRequest()">
-                                <i class="fas fa-stop"></i> Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        <!-- Playwright -->
+        <div class="card" id="website-playwright-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title"><span>🎭</span> Playwright Script</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="WebsitePage.copyScript()">📋 Copy</button>
+              <button class="btn btn-outline btn-sm" onclick="WebsitePage.downloadScript()">⬇️ Download</button>
+              <button class="btn btn-green btn-sm" onclick="WebsitePage.runScript()">▶ Run</button>
             </div>
+          </div>
+          <div id="website-run-status" class="status-banner"></div>
+          <div class="code-header">
+            <span id="script-filename">generated_test.spec.js</span>
+            <span id="script-lines" style="color:var(--text-muted)"></span>
+          </div>
+          <pre class="code-block" id="playwright-script-code"></pre>
         </div>
-    </div>
+      </section>
 
-    <!-- Debug Console -->
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white">
-            <i class="fas fa-terminal me-2"></i>Debug Console
-            <button class="btn btn-sm btn-outline-light float-end" onclick="clearDebugLog()">
-                <i class="fas fa-trash"></i> Clear
-            </button>
+      <!-- ══ AI AGENTS ══ -->
+      <section class="page-section" id="page-agents">
+        <!-- Status card -->
+        <div class="card card-glow-purple" id="ai-status-card">
+          <div class="card-header">
+            <div class="card-title"><span>🤖</span> AI Agent Status</div>
+            <span class="card-badge" id="ai-status-badge">Checking…</span>
+          </div>
+          <div id="ai-status-msg" style="font-size:13px;color:var(--text-secondary)"></div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" id="ai-models-list"></div>
         </div>
-        <div class="card-body">
-            <div class="debug-log" id="debugConsole">
-                <div class="debug-info">Debug console ready. Logs will appear here.</div>
+
+        <!-- Tab: Chat / Run Agents -->
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="AgentPage.switchTab('chat', this)">💬 Chat with AI</button>
+          <button class="tab-btn" onclick="AgentPage.switchTab('security', this)">🛡️ Security Agent</button>
+          <button class="tab-btn" onclick="AgentPage.switchTab('accessibility', this)">♿ Accessibility Agent</button>
+          <button class="tab-btn" onclick="AgentPage.switchTab('enhance', this)">✨ Enhance Tests</button>
+        </div>
+
+        <!-- Chat -->
+        <div class="tab-panel active" id="tab-chat">
+          <div class="chat-window">
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-msg ai">
+                <div class="chat-avatar ai">🤖</div>
+                <div class="chat-bubble">Hello! I'm your AI QA assistant powered by Ollama. Ask me anything about testing, test case design, or your results. I can also help generate edge cases, review your Playwright scripts, or suggest security tests.</div>
+              </div>
             </div>
-            <div class="mt-2">
-                <small class="text-muted">
-                    <i class="fas fa-info-circle"></i>
-                    Log level: <span class="badge bg-info">VERBOSE</span>
-                    | Auto-scroll: <span class="badge bg-success">ON</span>
-                </small>
+            <div class="chat-input-bar">
+              <input type="text" class="form-control" id="chat-input" placeholder="Ask the AI about testing…" onkeydown="if(event.key==='Enter') AgentPage.sendChat()"/>
+              <button class="btn btn-purple" onclick="AgentPage.sendChat()" id="btn-send-chat">Send</button>
             </div>
+          </div>
         </div>
-    </div>
 
-    <!-- Results Tabs -->
-    <div class="card">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#elements">
-                        <i class="fas fa-code me-1"></i>Elements (<span id="elementsCount">0</span>)
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#testcases">
-                        <i class="fas fa-list-check me-1"></i>Test Cases (<span id="testCasesCount">0</span>)
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#playwright">
-                        <i class="fas fa-code me-1"></i>Playwright (<span id="playwrightCount">0</span>)
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#rawdata">
-                        <i class="fas fa-database me-1"></i>Raw Data
-                    </button>
-                </li>
-            </ul>
-        </div>
-        <div class="card-body">
-            <div class="tab-content">
-                <!-- Elements Tab -->
-                <div class="tab-pane fade show active" id="elements">
-                    <div id="elementsContainer">
-                        <p class="text-muted text-center">No elements analyzed yet</p>
-                    </div>
-                </div>
-
-                <!-- Test Cases Tab -->
-                <div class="tab-pane fade" id="testcases">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h5>Generated Test Cases</h5>
-                        <div>
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadTestCases()">
-                                <i class="fas fa-download"></i> Download
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="copyTestCases()">
-                                <i class="fas fa-copy"></i> Copy
-                            </button>
-                        </div>
-                    </div>
-                    <div id="testCasesContainer">
-                        <p class="text-muted text-center">No test cases generated yet</p>
-                    </div>
-                </div>
-
-                <!-- Playwright Tab -->
-                <div class="tab-pane fade" id="playwright">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h5>Playwright Test Script</h5>
-                        <div>
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="app.generatePlaywright()">
-                                <i class="fas fa-sync-alt"></i> Generate
-                            </button>
-                            <button class="btn btn-sm btn-success me-1" id="runPlaywrightBtn" onclick="app.runPlaywrightTests()">
-                                <i class="fas fa-play"></i> Run Tests
-                            </button>
-                            <button class="btn btn-sm btn-outline-success me-1" onclick="app.copyPlaywright()">
-                                <i class="fas fa-copy"></i> Copy
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="app.downloadPlaywright()">
-                                <i class="fas fa-download"></i> Download
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="includeAIPlaywright" checked>
-                        <label class="form-check-label" for="includeAIPlaywright">
-                            Include AI-enhanced test cases
-                        </label>
-                    </div>
-
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <i class="fas fa-code me-2"></i>Generated Script
-                        </div>
-                        <div class="card-body">
-                            <pre id="playwrightScript" style="max-height: 500px; overflow: auto; background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 0;">
-// Click "Generate" to create Playwright test script
-                            </pre>
-                        </div>
-                    </div>
-
-                    <!-- Execution Results Container (will be populated dynamically) -->
-                    <div id="executionResults"></div>
-
-                    <div class="card">
-                        <div class="card-header bg-info text-white">
-                            <i class="fas fa-info-circle me-2"></i>Instructions
-                        </div>
-                        <div class="card-body">
-                            <ol class="mb-0">
-                                <li><strong>Generate</strong> a Playwright script using the button above</li>
-                                <li><strong>Run Tests</strong> by clicking the green "Run Tests" button to execute locally</li>
-                                <li><strong>View Results</strong> in the execution results section below</li>
-                                <li><strong>Copy/Download</strong> the script for manual execution if needed</li>
-                            </ol>
-
-                            <div class="mt-3">
-                                <h6>Manual Execution (if needed):</h6>
-                                <code class="d-block mb-1">1. Copy script to file with .spec.js extension</code>
-                                <code class="d-block mb-1">2. Install Playwright: npm init playwright@latest</code>
-                                <code class="d-block mb-1">3. Run tests: npx playwright test</code>
-                                <code class="d-block">4. View results: npx playwright show-report</code>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Raw Data Tab -->
-                <div class="tab-pane fade" id="rawdata">
-                    <div class="mb-3">
-                        <button class="btn btn-sm btn-outline-primary" onclick="viewRawData()">
-                            <i class="fas fa-eye"></i> View Raw Response
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="copyRawData()">
-                            <i class="fas fa-copy"></i> Copy JSON
-                        </button>
-                    </div>
-                    <pre id="rawDataContainer" style="max-height: 400px; overflow: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;">
-No data available
-                    </pre>
-                </div>
+        <!-- Security Agent -->
+        <div class="tab-panel" id="tab-security">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>🛡️</span> Security Test Generator</div>
             </div>
+            <div class="form-group">
+              <label class="form-label">Target URL</label>
+              <input type="url" class="form-control" id="sec-url" placeholder="https://target.com"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Page Elements Summary (optional)</label>
+              <textarea class="form-control" id="sec-elements" rows="3" placeholder="Describe the interactive elements on the page…"></textarea>
+            </div>
+            <button class="btn btn-danger" onclick="AgentPage.securityTests()">Generate Security Tests</button>
+            <div id="sec-status" class="status-banner" style="margin-top:12px"></div>
+            <div id="sec-test-list" class="test-case-list" style="margin-top:12px"></div>
+          </div>
         </div>
-    </div>
+
+        <!-- Accessibility Agent -->
+        <div class="tab-panel" id="tab-accessibility">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>♿</span> Accessibility Test Generator (WCAG 2.1)</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target URL</label>
+              <input type="url" class="form-control" id="a11y-url" placeholder="https://target.com"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Page Metadata (optional)</label>
+              <textarea class="form-control" id="a11y-meta" rows="3" placeholder="Page title, number of forms, headings, etc…"></textarea>
+            </div>
+            <button class="btn btn-purple" onclick="AgentPage.accessibilityTests()">Generate A11y Tests</button>
+            <div id="a11y-status" class="status-banner" style="margin-top:12px"></div>
+            <div id="a11y-test-list" class="test-case-list" style="margin-top:12px"></div>
+          </div>
+        </div>
+
+        <!-- Enhance Tests -->
+        <div class="tab-panel" id="tab-enhance">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span>✨</span> Enhance Existing Test Cases</div>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+              Generate website or API tests first, then paste the JSON here for AI enhancement.
+            </p>
+            <div class="form-group">
+              <label class="form-label">Test Cases JSON</label>
+              <textarea class="form-control form-control-mono" id="enhance-json" rows="8" placeholder='[{"id":"...","title":"...","steps":[...],...}]'></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Context (page description)</label>
+              <input type="text" class="form-control" id="enhance-context" placeholder="e.g. Login page for a banking app"/>
+            </div>
+            <button class="btn btn-purple" onclick="AgentPage.enhanceTests()">Enhance with AI</button>
+            <div id="enhance-status" class="status-banner" style="margin-top:12px"></div>
+            <div id="enhance-test-list" class="test-case-list" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ RESULTS ══ -->
+      <section class="page-section" id="page-results">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span>📋</span> Test Results</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="ResultsPage.exportJson()">⬇️ Export JSON</button>
+              <button class="btn btn-outline btn-sm" onclick="ResultsPage.clearResults()">🗑️ Clear</button>
+            </div>
+          </div>
+          <div class="stats-row" id="results-stats"></div>
+          <div id="results-list">
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <div class="empty-title">No results yet</div>
+              <div class="empty-desc">Run API tests or execute a Playwright script to see results here.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="playwright-report-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title"><span>🎭</span> Playwright HTML Report</div>
+          </div>
+          <a href="/playwright-report/index.html" target="_blank" class="btn btn-outline">Open Full Report ↗</a>
+        </div>
+      </section>
+
+    </div><!-- /page-content -->
+  </main>
 </div>
 
-<!-- Toast Container -->
-<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
-
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/app.js"></script>
-<script>
-    // Global functions for button clicks
-    window.testConnection = () => app.testBackendConnection().catch(console.error);
-    window.testAI = () => app.testAI().catch(console.error);
-    window.analyzeWebsite = () => app.analyzeWebsite();
-    window.generateTests = () => app.generateTests();
-    window.stopAll = () => app.stopAll();
-    window.cancelRequest = () => app.cancelRequest();
-    window.skipAIEnhancement = () => app.skipAIEnhancement();
-    window.clearDebugLog = () => app.clearDebugLog();
-    window.testUrls = () => app.testUrls();
-    window.viewRawData = () => app.viewRawData();
-    window.copyRawData = () => app.copyRawData();
-    window.copyTestCases = () => app.copyTestCases();
-    window.downloadTestCases = () => app.downloadTestCases();
-
-    // Playwright specific functions
-    window.runPlaywrightTests = () => app.runPlaywrightTests();
-    window.copyPlaywright = () => app.copyPlaywright();
-    window.downloadPlaywright = () => app.downloadPlaywright();
-    window.viewExecutionResult = () => app.viewRawExecutionResult();
-</script>
+<script src="/js/app.js"></script>
 </body>
 </html>
