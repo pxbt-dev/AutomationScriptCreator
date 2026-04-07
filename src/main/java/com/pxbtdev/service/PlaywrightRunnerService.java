@@ -120,12 +120,12 @@ public class PlaywrightRunnerService {
             return url != null ? "    await page.goto('" + url + "');" : "    await page.reload();";
         }
         if (s.contains("click") && elementSelector != null && !elementSelector.isEmpty()) {
-            return "    await page.click('" + elementSelector + "');";
+            return "    await page.click(\"" + elementSelector + "\");";
         }
         if ((s.contains("fill") || s.contains("type") || s.contains("enter")) && elementSelector != null
                 && !elementSelector.isEmpty()) {
             String value = extractTestValue(step);
-            return "    await page.fill('" + elementSelector + "', '" + value + "');";
+            return "    await page.fill(\"" + elementSelector + "\", '" + value + "');";
         }
         if (s.contains("wait")) {
             return "    await page.waitForLoadState('networkidle');";
@@ -134,7 +134,7 @@ public class PlaywrightRunnerService {
             return "    await expect(page.locator('body')).toBeVisible();";
         }
         if (s.contains("submit")) {
-            return elementSelector != null ? "    await page.locator('" + elementSelector + "').press('Enter');"
+            return elementSelector != null ? "    await page.locator(\"" + elementSelector + "\").press('Enter');"
                     : "    await page.keyboard.press('Enter');";
         }
         return "    // " + step;
@@ -309,6 +309,9 @@ public class PlaywrightRunnerService {
             int exitCode = process.exitValue();
             result.put("success", exitCode == 0);
             result.put("exitCode", exitCode);
+            if (exitCode != 0) {
+                log.warn("Playwright tests failed (exit code {}). Output:\n{}", exitCode, output);
+            }
         }
 
         result.put("output", output.toString());

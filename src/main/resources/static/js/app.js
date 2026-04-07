@@ -405,7 +405,8 @@ const WebsitePage = {
                 setStatus('website-run-status', 'success',
                     `✅ Tests passed in ${((res.executionTime || 0) / 1000).toFixed(1)}s. <a href="/playwright-report/index.html" target="_blank" style="color:var(--accent-blue)">View Report ↗</a>`);
             } else {
-                setStatus('website-run-status', 'error', `❌ Tests failed: ${res.error || 'See console'}`);
+                const detail = res.error || (res.output ? `<pre style="margin-top:8px;white-space:pre-wrap;font-size:12px">${res.output}</pre>` : 'See server logs');
+                setStatus('website-run-status', 'error', `❌ Tests failed (exit code ${res.exitCode ?? '?'}):<br>${detail}`);
             }
 
             ResultsPage.addPlaywrightResult(res);

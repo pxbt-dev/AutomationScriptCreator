@@ -132,7 +132,8 @@
             <label class="form-label">Swagger / OpenAPI Spec URL</label>
             <div class="input-group">
               <input type="url" class="form-control" id="swagger-url"
-                     placeholder="http://yourapi/swagger/docs/v2  or  https://petstore.swagger.io/v2/swagger.json"/>
+                     placeholder="http://yourapi/swagger/docs/v2  or  https://petstore.swagger.io/v2/swagger.json"
+                     value="https://petstore.swagger.io/v2/swagger.json"/>
               <button class="btn btn-primary" id="btn-parse-swagger" onclick="SwaggerPage.parse()">
                 <span>Parse Spec</span>
               </button>
@@ -193,7 +194,7 @@
           <div class="form-group">
             <label class="form-label">Website URL</label>
             <div class="input-group">
-              <input type="url" class="form-control" id="website-url" placeholder="https://example.com"/>
+              <input type="url" class="form-control" id="website-url" placeholder="https://example.com" value="https://www.bbc.com/"/>
               <button class="btn btn-purple" id="btn-analyse" onclick="WebsitePage.analyse()">Analyse</button>
             </div>
           </div>
