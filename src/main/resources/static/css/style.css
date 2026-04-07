@@ -267,6 +267,12 @@ html, body {
   padding: 24px;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-card) transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content > footer {
+  margin-top: auto;
 }
 
 .page-section {
@@ -274,7 +280,7 @@ html, body {
   animation: fadeInUp 0.3s ease;
 }
 
-.page-section.active { display: block; }
+.page-section.active { display: flex; flex-direction: column; flex: 1; }
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
