@@ -251,8 +251,18 @@ public class PlaywrightRunnerService {
         return Files.exists(dir.resolve("node_modules").resolve("@playwright"));
     }
 
+    private List<String> cmd(String... args) {
+        List<String> command = new ArrayList<>();
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            command.add("cmd");
+            command.add("/c");
+        }
+        command.addAll(List.of(args));
+        return command;
+    }
+
     private void installPlaywright(Path dir) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("npm", "install", "--prefer-offline")
+        ProcessBuilder pb = new ProcessBuilder(cmd("npm", "install", "--prefer-offline"))
                 .directory(dir.toFile())
                 .redirectErrorStream(true);
         Process process = pb.start();
@@ -262,7 +272,7 @@ public class PlaywrightRunnerService {
             throw new RuntimeException("npm install timed out");
         }
         // Install browser
-        ProcessBuilder pbInstall = new ProcessBuilder("npx", "playwright", "install", "chromium")
+        ProcessBuilder pbInstall = new ProcessBuilder(cmd("npx", "playwright", "install", "chromium"))
                 .directory(dir.toFile())
                 .redirectErrorStream(true);
         Process installProcess = pbInstall.start();
@@ -274,9 +284,9 @@ public class PlaywrightRunnerService {
         Map<String, Object> result = new HashMap<>();
 
         ProcessBuilder pb = new ProcessBuilder(
-                "npx", "playwright", "test", filename,
+                cmd("npx", "playwright", "test", filename,
                 "--reporter=list",
-                "--output=../test-results")
+                "--output=../test-results"))
                 .directory(dir.toFile())
                 .redirectErrorStream(true);
 
