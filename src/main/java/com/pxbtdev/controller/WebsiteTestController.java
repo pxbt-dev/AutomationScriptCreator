@@ -6,6 +6,7 @@ import com.pxbtdev.service.TestCaseGeneratorService;
 import com.pxbtdev.service.PlaywrightRunnerService;
 import com.pxbtdev.model.entity.InteractiveElement;
 import com.pxbtdev.model.entity.TestCase;
+import com.pxbtdev.util.UrlUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,37 +25,52 @@ public class WebsiteTestController {
     private final TestCaseGeneratorService testCaseGeneratorService;
     private final PlaywrightRunnerService playwrightRunnerService;
 
+    private String normalizeUrl(String url) {
+        return UrlUtils.normalizeUrl(url);
+    }
+
     /** Analyse a URL: fetch metadata and element inventory */
     @GetMapping("/analyze")
     public ResponseEntity<Map<String, Object>> analyze(@RequestParam String url) {
+        log.info("Received website analysis request for URL: [{}]", url);
+        long startTime = System.currentTimeMillis();
+
+        String normalizedUrl = normalizeUrl(url);
+
         try {
-            log.info("Analysing URL: {}", url);
-            Map<String, Object> pageInfo = analyzerService.analyzePage(url);
+            log.info("Step 1: Fetching page HTML for [{}]", normalizedUrl);
+            String html = analyzerService.fetchPageHtml(normalizedUrl);
+            if (html == null) {
+                log.error("Failed to fetch HTML for [{}]. Aborting analysis.", normalizedUrl);
+                return ResponseEntity.internalServerError().body(Map.of("error", "Failed to fetch page content"));
+            }
 
-            String html = (String) pageInfo.get("_html");
-            if (html == null)
-                html = analyzerService.fetchPageHtml(url);
+            log.info("Step 2: Analyzing page structure and discovering elements");
+            Map<String, Object> analysis = analyzerService.analyzePage(html, normalizedUrl);
+            List<InteractiveElement> elements = discoveryService.discoverElements(html, normalizedUrl);
 
-            List<InteractiveElement> elements = html != null
-                    ? discoveryService.discoverElements(html, url)
-                    : List.of();
+            log.info("Step 3: Compiling complete analysis package");
+            Map<String, Object> response = new LinkedHashMap<>(analysis);
+            response.put("elements", elements);
+            response.put("elementCount", elements.size());
+            response.put("summary", String.format("Successfully analysed %s. Discovered %d interactive elements.", 
+                    normalizedUrl, elements.size()));
+            
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Website analysis for [{}] completed successfully in {}ms", normalizedUrl, duration);
+            return ResponseEntity.ok(response);
 
-            Map<String, Object> result = new LinkedHashMap<>(pageInfo);
-            result.put("elements", elements);
-            result.put("elementCount", elements.size());
-            result.put("success", !pageInfo.containsKey("error"));
-            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Analysis failed for {}: {}", url, e.getMessage());
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("success", false, "error", e.getMessage()));
+            log.error("FATAL: Analysis workflow failed for [{}] after {}ms: {}", 
+                    normalizedUrl, (System.currentTimeMillis() - startTime), e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Analysis failed: " + e.getMessage()));
         }
     }
 
     /** Generate test cases from a URL */
     @PostMapping("/generate-tests")
     public ResponseEntity<Map<String, Object>> generateTests(@RequestBody Map<String, Object> req) {
-        String url = (String) req.get("url");
+        String url = normalizeUrl((String) req.get("url"));
         boolean useAI = Boolean.TRUE.equals(req.get("useAI"));
 
         if (url == null || url.isBlank()) {
@@ -92,7 +108,7 @@ public class WebsiteTestController {
     /** Generate a Playwright script from a URL */
     @PostMapping("/generate-playwright")
     public ResponseEntity<Map<String, Object>> generatePlaywright(@RequestBody Map<String, Object> req) {
-        String url = (String) req.get("url");
+        String url = normalizeUrl((String) req.get("url"));
         boolean useAI = Boolean.TRUE.equals(req.get("useAI"));
 
         if (url == null || url.isBlank()) {

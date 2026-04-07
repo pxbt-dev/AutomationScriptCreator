@@ -3,6 +3,7 @@ package com.pxbtdev.controller;
 import com.pxbtdev.service.AIAgentService;
 import com.pxbtdev.service.OllamaService;
 import com.pxbtdev.model.entity.TestCase;
+import com.pxbtdev.util.UrlUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -59,32 +60,60 @@ public class AIAgentController {
     }
 
     /** Generate security test cases for a URL */
-    @PostMapping("/security-tests")
-    public ResponseEntity<Map<String, Object>> securityTests(@RequestBody Map<String, Object> req) {
-        String url = (String) req.get("url");
-        String elementSummary = (String) req.getOrDefault("elementSummary", "");
+    @GetMapping("/security-tests")
+    public ResponseEntity<List<TestCase>> securityTests(@RequestParam String url) {
+        log.info("Received request for AI-driven security tests for URL: [{}]", url);
+        long startTime = System.currentTimeMillis();
 
-        List<TestCase> tests = agentService.generateSecurityTests(url, elementSummary);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "testCases", tests,
-                "testCaseCount", tests.size()));
+        String normalizedUrl = UrlUtils.normalizeUrl(url);
+
+        try {
+            if (!ollamaService.isAvailable()) {
+                log.warn("Security test generation aborted: Ollama AI service is offline");
+                return ResponseEntity.status(503).build();
+            }
+
+            log.info("Initiating AI security analysis for [{}]", normalizedUrl);
+            List<TestCase> tests = agentService.generateSecurityTests(normalizedUrl, "");
+            
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("AI security analysis for [{}] completed in {}ms. Generated {} special security scenarios.", 
+                    normalizedUrl, duration, tests.size());
+            return ResponseEntity.ok(tests);
+        } catch (Exception e) {
+            log.error("FATAL: AI security test generation failed for [{}] after {}ms: {}", 
+                    normalizedUrl, (System.currentTimeMillis() - startTime), e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
-    /** Generate accessibility test cases */
-    @PostMapping("/accessibility-tests")
-    public ResponseEntity<Map<String, Object>> accessibilityTests(@RequestBody Map<String, Object> req) {
-        String url = (String) req.get("url");
-        String pageMetadata = (String) req.getOrDefault("pageMetadata", "");
+    @GetMapping("/accessibility-tests")
+    public ResponseEntity<List<TestCase>> accessibilityTests(@RequestParam String url) {
+        log.info("Received request for AI-driven accessibility tests for URL: [{}]", url);
+        long startTime = System.currentTimeMillis();
 
-        List<TestCase> tests = agentService.generateAccessibilityTests(url, pageMetadata);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "testCases", tests,
-                "testCaseCount", tests.size()));
+        String normalizedUrl = UrlUtils.normalizeUrl(url);
+
+        try {
+            if (!ollamaService.isAvailable()) {
+                log.warn("Accessibility test generation aborted: Ollama AI service is offline");
+                return ResponseEntity.status(503).build();
+            }
+
+            log.info("Initiating AI accessibility analysis for [{}]", normalizedUrl);
+            List<TestCase> tests = agentService.generateAccessibilityTests(normalizedUrl, "");
+            
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("AI accessibility analysis for [{}] completed in {}ms. Generated {} special accessibility scenarios.", 
+                    normalizedUrl, duration, tests.size());
+            return ResponseEntity.ok(tests);
+        } catch (Exception e) {
+            log.error("FATAL: AI accessibility test generation failed for [{}] after {}ms: {}", 
+                    normalizedUrl, (System.currentTimeMillis() - startTime), e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
-
-    /** Quick prompt to Ollama (for the chat interface) */
+/** Quick prompt to Ollama (for the chat interface) */
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, String> req) {
         String message = req.get("message");

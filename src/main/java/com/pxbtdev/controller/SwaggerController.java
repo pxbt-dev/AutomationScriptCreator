@@ -4,6 +4,7 @@ import com.pxbtdev.service.SwaggerParserService;
 import com.pxbtdev.service.ApiTestGeneratorService;
 import com.pxbtdev.service.ApiTestRunnerService;
 import com.pxbtdev.model.entity.TestCase;
+import com.pxbtdev.util.UrlUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,64 +25,106 @@ public class SwaggerController {
     /** Parse a Swagger/OpenAPI spec from URL */
     @PostMapping("/parse")
     public ResponseEntity<Map<String, Object>> parse(@RequestBody Map<String, String> req) {
-        String url = req.get("url");
+        String inputUrl = req.get("url");
+        log.info("Received Swagger parse request for: [{}]", inputUrl);
+        long startTime = System.currentTimeMillis();
+
+        String url = UrlUtils.normalizeUrl(inputUrl);
         if (url == null || url.isBlank()) {
+            log.warn("Swagger parse aborted: URL is null or blank");
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Swagger URL is required"));
         }
-        log.info("Parsing Swagger spec: {}", url);
-        Map<String, Object> result = parserService.parseSpec(url);
-        return ResponseEntity.ok(result);
+
+        try {
+            log.info("Initiating Swagger spec parsing for [{}]", url);
+            Map<String, Object> result = parserService.parseSpec(url);
+            
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Swagger parsing for [{}] completed in {}ms", url, duration);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("FATAL: Swagger parsing failed for [{}] after {}ms: {}", 
+                    url, (System.currentTimeMillis() - startTime), e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "error", e.getMessage()));
+        }
     }
 
     /** Generate test cases from a previously parsed spec */
     @PostMapping("/generate-tests")
     public ResponseEntity<Map<String, Object>> generateTests(@RequestBody Map<String, Object> req) {
+        log.info("Received request to generate tests from existing spec");
+        long startTime = System.currentTimeMillis();
+
         @SuppressWarnings("unchecked")
         Map<String, Object> spec = (Map<String, Object>) req.get("spec");
         boolean useAI = Boolean.TRUE.equals(req.get("useAI"));
 
         if (spec == null) {
+            log.warn("Test generation aborted: No specification provided in request body");
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Spec is required"));
         }
 
-        log.info("Generating API tests from spec (AI={})", useAI);
-        long start = System.currentTimeMillis();
-        List<TestCase> tests = testGeneratorService.generateFromSpec(spec, useAI);
+        try {
+            log.info("Generating API tests from provided specification (AI enhancement: {})", useAI);
+            List<TestCase> tests = testGeneratorService.generateFromSpec(spec, useAI);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "testCases", tests,
-                "testCaseCount", tests.size(),
-                "aiEnhancedCount", tests.stream().filter(TestCase::isAiEnhanced).count(),
-                "processingTimeMs", System.currentTimeMillis() - start));
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("API test generation completed in {}ms. Created {} test cases.", duration, tests.size());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "testCases", tests,
+                    "testCaseCount", tests.size(),
+                    "aiEnhancedCount", tests.stream().filter(TestCase::isAiEnhanced).count(),
+                    "processingTimeMs", duration));
+        } catch (Exception e) {
+            log.error("FATAL: API test generation failed after {}ms: {}", 
+                    (System.currentTimeMillis() - startTime), e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "error", e.getMessage()));
+        }
     }
 
     /** Parse spec and generate tests in one shot */
     @PostMapping("/parse-and-generate")
     public ResponseEntity<Map<String, Object>> parseAndGenerate(@RequestBody Map<String, Object> req) {
-        String url = (String) req.get("url");
+        String inputUrl = (String) req.get("url");
         boolean useAI = Boolean.TRUE.equals(req.get("useAI"));
+        log.info("Received one-shot parse and generate request for: [{}] (AI={})", inputUrl, useAI);
+        long startTime = System.currentTimeMillis();
 
+        String url = UrlUtils.normalizeUrl(inputUrl);
         if (url == null || url.isBlank()) {
+            log.warn("One-shot workflow aborted: URL is missing");
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Swagger URL is required"));
         }
 
-        log.info("Parse and generate for: {} (AI={})", url, useAI);
+        try {
+            log.info("Step 1: Parsing Swagger specification from [{}]", url);
+            Map<String, Object> spec = parserService.parseSpec(url);
+            if (!Boolean.TRUE.equals(spec.get("success"))) {
+                log.error("One-shot workflow failed at parsing step for [{}]", url);
+                return ResponseEntity.ok(spec); // Return error from parser
+            }
 
-        Map<String, Object> spec = parserService.parseSpec(url);
-        if (!Boolean.TRUE.equals(spec.get("success"))) {
-            return ResponseEntity.ok(spec); // Return error from parser
+            log.info("Step 2: Generating automated tests from parsed endpoints");
+            List<TestCase> tests = testGeneratorService.generateFromSpec(spec, useAI);
+
+            Map<String, Object> result = new LinkedHashMap<>(spec);
+            result.put("testCases", tests);
+            result.put("testCaseCount", tests.size());
+            result.put("aiEnhancedCount", tests.stream().filter(TestCase::isAiEnhanced).count());
+            
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("One-shot workflow for [{}] completed successfully in {}ms. Total tests: {}", 
+                    url, duration, tests.size());
+            result.put("processingTimeMs", duration);
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("FATAL: One-shot workflow failed for [{}] after {}ms: {}", 
+                    url, (System.currentTimeMillis() - startTime), e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "error", e.getMessage()));
         }
-
-        long start = System.currentTimeMillis();
-        List<TestCase> tests = testGeneratorService.generateFromSpec(spec, useAI);
-
-        Map<String, Object> result = new LinkedHashMap<>(spec);
-        result.put("testCases", tests);
-        result.put("testCaseCount", tests.size());
-        result.put("aiEnhancedCount", tests.stream().filter(TestCase::isAiEnhanced).count());
-        result.put("processingTimeMs", System.currentTimeMillis() - start);
-        return ResponseEntity.ok(result);
     }
 
     /** Execute API tests against a live endpoint */

@@ -10,14 +10,9 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-/**
- * Generates Playwright test scripts and executes them via Node.js subprocess.
- */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PlaywrightRunnerService {
 
     @Value("${playwright.test.dir:./generated-playwright-tests}")
@@ -175,13 +170,17 @@ public class PlaywrightRunnerService {
      * Save a script to disk and run it with Playwright.
      */
     public Map<String, Object> runScript(String scriptContent, String testName) {
+        log.info("Initiating Playwright test execution for: [{}]", testName);
         Map<String, Object> result = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
         try {
             // Ensure test directory exists
             Path dir = Paths.get(testDir);
-            Files.createDirectories(dir);
+            if (!Files.exists(dir)) {
+                log.info("Creating generated tests directory at: [{}]", dir.toAbsolutePath());
+                Files.createDirectories(dir);
+            }
 
             // Write package.json if missing
             ensurePlaywrightProject(dir);
@@ -189,20 +188,22 @@ public class PlaywrightRunnerService {
             // Write test file
             String filename = testName.replaceAll("[^a-zA-Z0-9_-]", "_") + ".spec.js";
             Path testFile = dir.resolve(filename);
+            log.info("Writing Playwright script content to file: [{}]", testFile.toAbsolutePath());
             Files.writeString(testFile, scriptContent);
-            log.info("Saved test file: {}", testFile);
 
             // Check if playwright is installed
             if (!isPlaywrightInstalled(dir)) {
-                log.info("Installing Playwright...");
+                log.info("Playwright dependencies missing in [{}]. Starting installation...", dir);
                 installPlaywright(dir);
             }
 
             // Run test
+            log.info("Launching Playwright test process...");
             return executeTest(dir, filename, startTime);
 
         } catch (Exception e) {
-            log.error("Failed to run Playwright test: {}", e.getMessage());
+            log.error("CRITICAL: Playwright execution failed for {} after {}ms: {}", 
+                    testName, (System.currentTimeMillis() - startTime), e.getMessage(), e);
             result.put("success", false);
             result.put("error", e.getMessage());
             result.put("executionTime", System.currentTimeMillis() - startTime);

@@ -21,26 +21,46 @@ public class ElementDiscoveryService {
     private final WebPageAnalyzerService analyzerService;
 
     public List<InteractiveElement> discoverElements(String html, String baseUrl) {
+        log.info("Starting element discovery on page: [{}]", baseUrl);
         Document doc = analyzerService.parseHtml(html);
         List<InteractiveElement> elements = new ArrayList<>();
 
         // Buttons
-        elements.addAll(extractButtons(doc));
+        List<InteractiveElement> buttons = extractButtons(doc);
+        log.info("Discovered {} buttons/clickable elements", buttons.size());
+        elements.addAll(buttons);
+
         // Inputs
-        elements.addAll(extractInputs(doc));
+        List<InteractiveElement> inputs = extractInputs(doc);
+        log.info("Discovered {} input fields", inputs.size());
+        elements.addAll(inputs);
+
         // Links
-        elements.addAll(extractLinks(doc, baseUrl));
+        List<InteractiveElement> links = extractLinks(doc, baseUrl);
+        log.info("Discovered {} hyperlinks", links.size());
+        elements.addAll(links);
+
         // Selects
-        elements.addAll(extractSelects(doc));
+        List<InteractiveElement> selects = extractSelects(doc);
+        log.info("Discovered {} dropdown selects", selects.size());
+        elements.addAll(selects);
+
         // Textareas
-        elements.addAll(extractTextareas(doc));
+        List<InteractiveElement> textareas = extractTextareas(doc);
+        log.info("Discovered {} textarea fields", textareas.size());
+        elements.addAll(textareas);
+
         // Forms
-        elements.addAll(extractForms(doc));
+        List<InteractiveElement> forms = extractForms(doc);
+        log.info("Discovered {} forms", forms.size());
+        elements.addAll(forms);
+
+        log.info("Total raw elements discovered: {}", elements.size());
 
         // Deduplicate by selector and score
         elements = deduplicateAndSort(elements);
 
-        log.info("Discovered {} interactive elements on {}", elements.size(), baseUrl);
+        log.info("Final unique interactive elements count after deduplication: {} for {}", elements.size(), baseUrl);
         return elements;
     }
 
@@ -56,8 +76,11 @@ public class ElementDiscoveryService {
             if (label.isEmpty())
                 label = el.attr("title").trim();
 
+            String selector = generateSelector(el);
+            log.debug("Extracted button: [{}] with selector: [{}]", label, selector);
+
             result.add(InteractiveElement.builder()
-                    .selector(generateSelector(el))
+                    .selector(selector)
                     .elementType("button")
                     .actionType("click")
                     .label(label)
@@ -212,41 +235,77 @@ public class ElementDiscoveryService {
     }
 
     private String generateSelector(Element el) {
-        // ID selector is most stable
+        // 1. ID selector is most stable
         if (!el.id().isEmpty())
             return "#" + el.id();
 
-        // Name attribute
-        if (!el.attr("name").isEmpty())
-            return el.tagName() + "[name='" + el.attr("name") + "']";
-
-        // Data-testid
+        // 2. Data-testid or data-qa (if present)
         if (!el.attr("data-testid").isEmpty())
             return "[data-testid='" + el.attr("data-testid") + "']";
+        if (!el.attr("data-qa").isEmpty())
+            return "[data-qa='" + el.attr("data-qa") + "']";
 
-        // Text content for buttons/links
-        String text = el.text().trim();
-        if (!text.isEmpty() && text.length() < 40) {
-            if (el.tagName().equals("button"))
-                return "button:has-text('" + text + "')";
-            if (el.tagName().equals("a"))
-                return "a:has-text('" + text + "')";
+        // 3. Name attribute
+        if (!el.attr("name").isEmpty()) {
+            String selector = el.tagName() + "[name='" + el.attr("name") + "']";
+            // Check if unique in its form parent
+            Element form = el.closest("form");
+            if (form != null && form.select(selector).size() > 1) {
+                // If not unique in form, add form context
+                if (!form.id().isEmpty()) return "#" + form.id() + " " + selector;
+            }
+            return selector;
         }
 
-        // Class-based (take first meaningful class)
-        String classes = el.className().trim();
-        if (!classes.isEmpty()) {
-            String firstClass = classes.split("\\s+")[0];
-            if (!firstClass.isEmpty() && !firstClass.matches(".*\\d.*")) {
-                return el.tagName() + "." + firstClass;
+        // 4. Text content for buttons/links (if short and unique-ish)
+        String text = el.text().trim();
+        if (!text.isEmpty() && text.length() < 40) {
+            String textSelector = el.tagName() + ":has-text('" + text.replace("'", "\\'") + "')";
+            // Verify if it's likely to be unique or if we should add parent context
+            if (el.tagName().equals("button") || el.tagName().equals("a")) {
+                return textSelector;
             }
         }
 
-        // Type-based for inputs
+        // 5. Class-based (take first meaningful class)
+        String classes = el.className().trim();
+        if (!classes.isEmpty()) {
+            String firstClass = classes.split("\\s+")[0];
+            // Avoid obfuscated or dynamic classes (often contain numbers or are very short)
+            if (!firstClass.isEmpty() && !firstClass.matches(".*\\d.*") && firstClass.length() > 2) {
+                String selector = el.tagName() + "." + firstClass;
+                // Add parent context for better specificity
+                Element parent = el.parent();
+                if (parent != null && !parent.id().isEmpty()) {
+                    return "#" + parent.id() + " " + selector;
+                }
+                return selector;
+            }
+        }
+
+        // 6. Attribute-based (type, placeholder, aria-label)
         if (!el.attr("type").isEmpty())
             return el.tagName() + "[type='" + el.attr("type") + "']";
+        if (!el.attr("placeholder").isEmpty())
+            return el.tagName() + "[placeholder='" + el.attr("placeholder") + "']";
+        if (!el.attr("aria-label").isEmpty())
+            return el.tagName() + "[aria-label='" + el.attr("aria-label") + "']";
 
-        return el.tagName();
+        // 7. Fallback to nth-of-type (less stable but guaranteed)
+        int index = 1;
+        Element prev = el.previousElementSibling();
+        while (prev != null) {
+            if (prev.tagName().equals(el.tagName())) index++;
+            prev = prev.previousElementSibling();
+        }
+        
+        String selector = el.tagName() + ":nth-of-type(" + index + ")";
+        Element parent = el.parent();
+        if (parent != null && !parent.id().isEmpty()) {
+            return "#" + parent.id() + " > " + selector;
+        }
+        
+        return selector;
     }
 
     private int scoreButton(Element el, String label) {

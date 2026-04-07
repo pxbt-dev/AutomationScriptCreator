@@ -25,6 +25,7 @@ public class TestCaseGeneratorService {
      * Generate test cases from a URL.
      */
     public List<TestCase> generateFromUrl(String url, String html, boolean useAI) {
+        log.info("Starting test case generation from URL: [{}]", url);
         List<InteractiveElement> elements = elementDiscoveryService.discoverElements(html, url);
         return generateFromElements(elements, url, html, useAI);
     }
@@ -34,48 +35,65 @@ public class TestCaseGeneratorService {
      */
     public List<TestCase> generateFromElements(List<InteractiveElement> elements, String url, String html,
             boolean useAI) {
+        log.info("Generating test suite for {} elements on {}", elements.size(), url);
+        long start = System.currentTimeMillis();
         List<TestCase> testCases = new ArrayList<>();
 
         // 1. Smoke test (always)
+        log.info("Phase 1: Generating standard smoke tests");
         testCases.add(generateSmokeTest(url));
 
         // 2. Accessibility baseline
+        log.info("Phase 2: Generating accessibility verification tests");
         testCases.add(generateAccessibilityTest(url));
 
         // 3. Per-element tests
+        log.info("Phase 3: Generating individual element interaction tests");
         for (InteractiveElement el : elements) {
             testCases.add(generateElementTest(el, url));
         }
+        log.info("Created {} element-specific test cases", elements.size());
 
         // 4. Form tests (grouped)
+        log.info("Phase 4: Identifying form-related elements for bulk testing");
         List<InteractiveElement> formInputs = elements.stream()
                 .filter(e -> e.getElementType().equals("input") || e.getElementType().equals("select")
                         || e.getElementType().equals("textarea"))
                 .collect(Collectors.toList());
         if (!formInputs.isEmpty()) {
+            log.info("Found {} form inputs, generating happy-path and validation tests", formInputs.size());
             testCases.add(generateFormTest(formInputs, url));
             testCases.add(generateFormValidationTest(formInputs, url));
+        } else {
+            log.info("No form inputs discovered, skipping form-specific test generation");
         }
 
         // 5. Navigation test (if links found)
+        log.info("Phase 5: Generating cross-page navigation tests");
         List<InteractiveElement> links = elements.stream()
                 .filter(e -> e.getElementType().equals("link"))
                 .limit(5)
                 .collect(Collectors.toList());
         if (!links.isEmpty()) {
+            log.info("Found {} links for navigation testing", links.size());
             testCases.add(generateNavigationTest(links, url));
         }
 
         // 6. AI enhancement (if available)
-        if (useAI && ollamaService.isAvailable()) {
-            log.info("AI available - enhancing test cases with Ollama");
-            testCases.addAll(generateAITestCases(elements, url, html));
-        } else if (useAI) {
-            log.warn(
-                    "AI enhancement requested but Ollama is not available. Install Ollama and run: ollama pull qwen2.5-coder:7b");
+        if (useAI) {
+            log.info("Phase 6: AI-enhanced test generation requested");
+            if (ollamaService.isAvailable()) {
+                log.info("Ollama AI is online - initiating deep context analysis");
+                List<TestCase> aiTests = generateAITestCases(elements, url, html);
+                testCases.addAll(aiTests);
+                log.info("AI successfully added {} complex test scenarios", aiTests.size());
+            } else {
+                log.warn("AI enhancement requested but Ollama service is unavailable/offline");
+            }
         }
 
-        log.info("Generated {} test cases for {}", testCases.size(), url);
+        log.info("Test suite generation completed in {}ms. Total test cases: {}", 
+                (System.currentTimeMillis() - start), testCases.size());
         return testCases;
     }
 

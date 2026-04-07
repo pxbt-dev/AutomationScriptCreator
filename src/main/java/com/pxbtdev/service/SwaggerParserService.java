@@ -1,38 +1,28 @@
 package com.pxbtdev.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.converter.SwaggerConverter;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 import java.util.*;
 
-/**
- * Fetches and parses Swagger/OpenAPI specs from a URL.
- * Supports Swagger 2.0 and OpenAPI 3.0.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SwaggerParserService {
 
-    private final WebClient ollamaWebClient; // reusing WebClient for spec fetching
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    /**
-     * Parse a Swagger/OpenAPI spec from a URL.
-     * Returns a structured map suitable for JSON serialisation.
-     */
     public Map<String, Object> parseSpec(String specUrl) {
         log.info("Parsing Swagger spec from: {}", specUrl);
 
@@ -40,13 +30,31 @@ public class SwaggerParserService {
         parseOptions.setResolve(true);
         parseOptions.setResolveFully(true);
 
+        // Try OpenAPI 3.0 first, then fall back to Swagger 2.0 converter
         SwaggerParseResult result = new OpenAPIV3Parser().readLocation(specUrl, null, parseOptions);
+        if (result != null && result.getMessages() != null && !result.getMessages().isEmpty()) {
+            log.warn("readLocation (v3) messages for {}: {}", specUrl, result.getMessages());
+        }
 
         if (result == null || result.getOpenAPI() == null) {
-            // Try fetching raw JSON and re-parsing (for Swagger 2.0 behind corporate auth)
+            log.info("OpenAPI v3 parse failed, trying Swagger 2.0 converter");
+            result = new SwaggerConverter().readLocation(specUrl, null, parseOptions);
+            if (result != null && result.getMessages() != null && !result.getMessages().isEmpty()) {
+                log.warn("readLocation (v2 converter) messages for {}: {}", specUrl, result.getMessages());
+            }
+        }
+
+        if (result == null || result.getOpenAPI() == null) {
+            log.info("Both parsers failed for URL, attempting raw fetch fallback");
             String rawJson = fetchRaw(specUrl);
             if (rawJson != null) {
-                result = new OpenAPIV3Parser().readContents(rawJson, null, parseOptions);
+                log.info("Raw fetch succeeded ({} chars), retrying with Swagger 2.0 converter", rawJson.length());
+                result = new SwaggerConverter().readContents(rawJson, null, parseOptions);
+                if (result != null && result.getMessages() != null && !result.getMessages().isEmpty()) {
+                    log.warn("readContents (v2 converter) messages: {}", result.getMessages());
+                }
+            } else {
+                log.warn("Raw fetch returned null for {}", specUrl);
             }
         }
 
@@ -67,19 +75,16 @@ public class SwaggerParserService {
         spec.put("success", true);
         spec.put("specUrl", specUrl);
 
-        // Info
         if (api.getInfo() != null) {
             spec.put("title", api.getInfo().getTitle());
             spec.put("version", api.getInfo().getVersion());
             spec.put("description", api.getInfo().getDescription());
         }
 
-        // Base URL
         if (api.getServers() != null && !api.getServers().isEmpty()) {
             spec.put("baseUrl", api.getServers().get(0).getUrl());
         }
 
-        // Endpoints
         List<Map<String, Object>> endpoints = new ArrayList<>();
         if (api.getPaths() != null) {
             for (Map.Entry<String, PathItem> pathEntry : api.getPaths().entrySet()) {
@@ -97,7 +102,6 @@ public class SwaggerParserService {
         spec.put("endpoints", endpoints);
         spec.put("endpointCount", endpoints.size());
 
-        // Tags (groups)
         Set<String> tags = new LinkedHashSet<>();
         for (Map<String, Object> ep : endpoints) {
             Object epTags = ep.get("tags");
@@ -124,7 +128,6 @@ public class SwaggerParserService {
         endpoint.put("tags", operation.getTags() != null ? operation.getTags() : List.of());
         endpoint.put("deprecated", Boolean.TRUE.equals(operation.getDeprecated()));
 
-        // Parameters
         List<Map<String, Object>> params = new ArrayList<>();
         if (operation.getParameters() != null) {
             for (Parameter param : operation.getParameters()) {
@@ -143,7 +146,6 @@ public class SwaggerParserService {
         }
         endpoint.put("parameters", params);
 
-        // Request body
         if (operation.getRequestBody() != null) {
             endpoint.put("hasRequestBody", true);
             endpoint.put("requestBodyRequired", Boolean.TRUE.equals(operation.getRequestBody().getRequired()));
@@ -151,7 +153,6 @@ public class SwaggerParserService {
             endpoint.put("hasRequestBody", false);
         }
 
-        // Responses
         Map<String, Object> responses = new LinkedHashMap<>();
         if (operation.getResponses() != null) {
             operation.getResponses().forEach((code, response) -> responses.put(code, response.getDescription()));
@@ -163,8 +164,9 @@ public class SwaggerParserService {
 
     private String fetchRaw(String url) {
         try {
-            // Build a simple WebClient for fetching the spec
+            HttpClient httpClient = HttpClient.create().followRedirect(true);
             WebClient wc = WebClient.builder()
+                    .clientConnector(new ReactorClientHttpConnector(httpClient))
                     .codecs(c -> c.defaultCodecs().maxInMemorySize(5 * 1024 * 1024))
                     .build();
             return wc.get()
