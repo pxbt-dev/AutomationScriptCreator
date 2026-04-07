@@ -294,8 +294,8 @@ public class PlaywrightRunnerService {
             command.addAll(List.of(args));
             return command;
         }
-        // On Linux/Mac use bash -c so the shell resolves npm/npx via the user's PATH
-        return List.of("/bin/bash", "-c", String.join(" ", args));
+        // Login shell (-l) sources .bash_profile / .profile so NVM, volta etc. are activated
+        return List.of("/bin/bash", "-lc", String.join(" ", args));
     }
 
     /** Augment PATH with common Node.js install locations so npm/npx can be found. */
