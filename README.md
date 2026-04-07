@@ -17,6 +17,8 @@ mvn spring-boot:run
 
 App starts on [http://localhost:8080](http://localhost:8080).
 
+Or here for a demo https://automationscriptcreator-production.up.railway.app/
+
 ## Usage
 
 ### Website testing
