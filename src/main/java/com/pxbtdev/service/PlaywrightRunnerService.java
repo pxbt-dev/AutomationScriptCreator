@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -23,6 +24,26 @@ public class PlaywrightRunnerService {
 
     @Value("${playwright.execution.timeout:300000}")
     private long executionTimeout;
+
+    @PostConstruct
+    public void warmUp() {
+        Thread.ofVirtual().name("playwright-warmup").start(() -> {
+            try {
+                Path dir = Paths.get(testDir);
+                Files.createDirectories(dir);
+                ensurePlaywrightProject(dir);
+                if (!isPlaywrightInstalled(dir)) {
+                    log.info("Playwright not ready — installing in background...");
+                    installPlaywright(dir);
+                    log.info("Playwright warm-up complete.");
+                } else {
+                    log.info("Playwright already installed — skipping warm-up.");
+                }
+            } catch (Exception e) {
+                log.warn("Playwright warm-up failed (will retry on first test run): {}", e.getMessage());
+            }
+        });
+    }
 
     /**
      * Generate a complete Playwright test script from test cases.
@@ -248,35 +269,77 @@ public class PlaywrightRunnerService {
     }
 
     private boolean isPlaywrightInstalled(Path dir) {
-        return Files.exists(dir.resolve("node_modules").resolve("@playwright"));
+        if (!Files.exists(dir.resolve("node_modules").resolve("@playwright"))) return false;
+        // Also check that browser binaries are present — without them npx playwright test
+        // will silently download Chromium mid-run, causing the process to hang indefinitely.
+        Path browsersRoot = Paths.get(System.getProperty("user.home"), ".cache", "ms-playwright");
+        if (IS_WINDOWS) {
+            browsersRoot = Paths.get(System.getenv().getOrDefault("LOCALAPPDATA",
+                    System.getProperty("user.home")), "ms-playwright");
+        }
+        try {
+            if (!Files.exists(browsersRoot)) return false;
+            return Files.list(browsersRoot).anyMatch(p -> p.getFileName().toString().startsWith("chromium"));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
+    private static final boolean IS_WINDOWS =
+            System.getProperty("os.name", "").toLowerCase().contains("win");
+
     private List<String> cmd(String... args) {
-        List<String> command = new ArrayList<>();
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            command.add("cmd");
-            command.add("/c");
+        if (IS_WINDOWS) {
+            List<String> command = new ArrayList<>(List.of("cmd", "/c"));
+            command.addAll(List.of(args));
+            return command;
         }
-        command.addAll(List.of(args));
-        return command;
+        // On Linux/Mac use bash -c so the shell resolves npm/npx via the user's PATH
+        return List.of("/bin/bash", "-c", String.join(" ", args));
+    }
+
+    /** Augment PATH with common Node.js install locations so npm/npx can be found. */
+    private void withNodePath(ProcessBuilder pb) {
+        if (IS_WINDOWS) return;
+        Map<String, String> env = pb.environment();
+        String existing = env.getOrDefault("PATH", "");
+        String home = System.getProperty("user.home", "");
+        String extra = String.join(File.pathSeparator,
+                "/usr/local/bin",
+                "/usr/bin",
+                home + "/.nvm/versions/node/current/bin",
+                home + "/.volta/bin",
+                home + "/.fnm/current/bin");
+        env.put("PATH", extra + File.pathSeparator + existing);
     }
 
     private void installPlaywright(Path dir) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(cmd("npm", "install", "--prefer-offline"))
                 .directory(dir.toFile())
                 .redirectErrorStream(true);
+        withNodePath(pb);
         Process process = pb.start();
         boolean finished = process.waitFor(120, TimeUnit.SECONDS);
         if (!finished) {
             process.destroyForcibly();
             throw new RuntimeException("npm install timed out");
         }
-        // Install browser
+        // Install Chromium browser binaries (can take a few minutes on first run)
+        log.info("Installing Chromium browser binaries — this may take a few minutes on first run...");
         ProcessBuilder pbInstall = new ProcessBuilder(cmd("npx", "playwright", "install", "chromium"))
                 .directory(dir.toFile())
                 .redirectErrorStream(true);
+        withNodePath(pbInstall);
         Process installProcess = pbInstall.start();
-        installProcess.waitFor(120, TimeUnit.SECONDS);
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(installProcess.getInputStream()))) {
+            r.lines().forEach(line -> log.info("[playwright-install] {}", line));
+        }
+        boolean browserInstalled = installProcess.waitFor(300, TimeUnit.SECONDS);
+        if (!browserInstalled) {
+            installProcess.destroyForcibly();
+            throw new RuntimeException("Playwright browser install timed out after 5 minutes");
+        }
+        log.info("Chromium browser installation complete (exit {})", installProcess.exitValue());
     }
 
     private Map<String, Object> executeTest(Path dir, String filename, long startTime)
@@ -289,6 +352,7 @@ public class PlaywrightRunnerService {
                 "--output=../test-results"))
                 .directory(dir.toFile())
                 .redirectErrorStream(true);
+        withNodePath(pb);
 
         Process process = pb.start();
 
